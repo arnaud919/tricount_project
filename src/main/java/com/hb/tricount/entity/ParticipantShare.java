@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 @Builder
 public class ParticipantShare {
 
-     @EqualsAndHashCode.Include
+    @EqualsAndHashCode.Include
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,4 +27,7 @@ public class ParticipantShare {
     @ManyToOne
     @JoinColumn(name = "expense_id")
     private Expense expense;
+
+    @ManyToOne
+    private Group group;
 }

@@ -14,4 +14,5 @@ public class CreateExpenseDTO {
     private Long payerId;
     private Long groupId;
     private List<ShareInputDTO> shares;
+    private List<Long> participantIds;
 }

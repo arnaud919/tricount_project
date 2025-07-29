@@ -4,10 +4,10 @@ import com.hb.tricount.business.ExpenseService;
 import com.hb.tricount.dto.*;
 import com.hb.tricount.entity.*;
 import com.hb.tricount.repository.*;
-import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -30,56 +30,47 @@ public class ExpenseServiceImpl implements ExpenseService {
         }
 
         @Override
-        @Transactional
         public ExpenseDTO addExpense(CreateExpenseDTO dto) {
                 Person payer = personRepository.findById(dto.getPayerId())
-                                .orElseThrow(() -> new IllegalArgumentException("Payer not found"));
+                                .orElseThrow(() -> new RuntimeException("Payer not found"));
 
                 Group group = groupRepository.findById(dto.getGroupId())
-                                .orElseThrow(() -> new IllegalArgumentException("Group not found"));
+                                .orElseThrow(() -> new RuntimeException("Group not found"));
 
                 Expense expense = Expense.builder()
                                 .description(dto.getDescription())
                                 .amount(dto.getAmount())
-                                .date(dto.getDate())
                                 .payer(payer)
                                 .group(group)
                                 .build();
 
-                List<ParticipantShare> shares = new ArrayList<>();
-                for (ShareInputDTO shareDTO : dto.getShares()) {
-                        Person person = personRepository.findById(shareDTO.getPersonId())
-                                        .orElseThrow(() -> new IllegalArgumentException("Participant not found"));
-
-                        ParticipantShare share = ParticipantShare.builder()
-                                        .expense(expense)
-                                        .person(person)
-                                        .amountOwed(shareDTO.getAmountOwed())
-                                        .build();
-
-                        shares.add(share);
-                }
-
-                expense.setShares(shares);
                 Expense savedExpense = expenseRepository.save(expense);
 
-                // Pas besoin de sauvegarder les shares séparément : cascade = ALL
+                BigDecimal shareAmount = dto.getAmount()
+                                .divide(BigDecimal.valueOf(dto.getParticipantIds().size()), RoundingMode.HALF_UP);
 
-                List<ParticipantShareDTO> shareDTOs = shares.stream()
-                                .map(s -> ParticipantShareDTO.builder()
-                                                .personId(s.getPerson().getId())
-                                                .amountOwed(s.getAmountOwed())
-                                                .build())
+                List<ParticipantShare> shares = dto.getParticipantIds().stream()
+                                .map(id -> {
+                                        Person person = personRepository.findById(id)
+                                                        .orElseThrow(() -> new RuntimeException("Person not found"));
+                                        return ParticipantShare.builder()
+                                                        .person(person)
+                                                        .expense(savedExpense)
+                                                        .group(group)
+                                                        .amountOwed(shareAmount)
+                                                        .build();
+                                })
                                 .toList();
 
+                participantShareRepository.saveAll(shares);
+
+                // Construction manuelle du DTO en retour
                 return ExpenseDTO.builder()
                                 .id(savedExpense.getId())
                                 .description(savedExpense.getDescription())
                                 .amount(savedExpense.getAmount())
-                                .date(savedExpense.getDate())
-                                .payerId(savedExpense.getPayer().getId())
-                                .groupId(savedExpense.getGroup().getId())
-                                .shares(shareDTOs)
+                                .payerId(payer.getId())
+                                .groupId(group.getId())
                                 .build();
         }
 
@@ -91,20 +82,23 @@ public class ExpenseServiceImpl implements ExpenseService {
                         List<ParticipantShareDTO> shares = expense.getShares().stream()
                                         .map(s -> ParticipantShareDTO.builder()
                                                         .personId(s.getPerson().getId())
+                                                        .personName(s.getPerson().getName())
+                                                        .expenseId(s.getExpense().getId())
+                                                        .description(s.getExpense().getDescription())
                                                         .amountOwed(s.getAmountOwed())
                                                         .build())
                                         .toList();
 
                         return ExpenseDTO.builder()
-                                        .id(expense.getId())
+                                        .expenseId(expense.getId())
                                         .description(expense.getDescription())
                                         .amount(expense.getAmount())
                                         .date(expense.getDate())
                                         .payerId(expense.getPayer().getId())
+                                        .payerName(expense.getPayer().getName())
                                         .groupId(expense.getGroup().getId())
                                         .shares(shares)
                                         .build();
                 }).toList();
         }
-
 }

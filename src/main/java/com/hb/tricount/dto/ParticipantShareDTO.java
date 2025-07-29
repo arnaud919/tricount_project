@@ -9,5 +9,8 @@ import lombok.Data;
 @Data
 public class ParticipantShareDTO {
     private Long personId;
+    private String personName;
+    private Long expenseId;
+    private String description;
     private BigDecimal amountOwed;
 }

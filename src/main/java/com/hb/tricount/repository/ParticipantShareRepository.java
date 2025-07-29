@@ -10,4 +10,6 @@ public interface ParticipantShareRepository extends JpaRepository<ParticipantSha
 
     List<ParticipantShare> findByPersonId(Long personId);
     List<ParticipantShare> findByExpenseId(Long expenseId);
+    List<ParticipantShare> findByGroupId(Long groupId);
+
 }

@@ -1,6 +1,10 @@
 package com.hb.tricount.entity;
 
+import java.util.Collection;
 import java.util.List;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,7 +15,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Person {
+public class Person implements UserDetails {
 
     @EqualsAndHashCode.Include
     @Id
@@ -20,6 +24,9 @@ public class Person {
 
     private String name;
     private String email;
+
+    @Column(nullable = false)
+    private String password;
 
     @ManyToMany(mappedBy = "members")
     private List<Group> groups;
@@ -35,4 +42,14 @@ public class Person {
 
     @OneToMany(mappedBy = "debtor")
     private List<Payment> paymentsMade;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(); // ou des rôles si tu les ajoutes plus tard
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
 }

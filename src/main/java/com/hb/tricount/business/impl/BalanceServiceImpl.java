@@ -5,8 +5,6 @@ import com.hb.tricount.dto.DebtDTO;
 import com.hb.tricount.entity.Expense;
 import com.hb.tricount.entity.ParticipantShare;
 import com.hb.tricount.repository.ExpenseRepository;
-import com.hb.tricount.repository.ParticipantShareRepository;
-import com.hb.tricount.repository.PersonRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -17,14 +15,11 @@ import java.util.*;
 public class BalanceServiceImpl implements BalanceService {
 
     private final ExpenseRepository expenseRepository;
-    private final ParticipantShareRepository shareRepository;
 
     public BalanceServiceImpl(
-            ExpenseRepository expenseRepository,
-            ParticipantShareRepository shareRepository
+            ExpenseRepository expenseRepository
     ) {
         this.expenseRepository = expenseRepository;
-        this.shareRepository = shareRepository;
     }
 
     @Override

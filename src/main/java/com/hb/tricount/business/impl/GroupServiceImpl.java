@@ -11,7 +11,6 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class GroupServiceImpl implements GroupService {
@@ -54,9 +53,9 @@ public class GroupServiceImpl implements GroupService {
                         .name(group.getName())
                         .memberIds(group.getMembers().stream()
                                 .map(Person::getId)
-                                .collect(Collectors.toList()))
+                                .toList())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -66,6 +65,6 @@ public class GroupServiceImpl implements GroupService {
                 .getMembers()
                 .stream()
                 .map(Person::getId)
-                .collect(Collectors.toList());
+                .toList();
     }
 }
