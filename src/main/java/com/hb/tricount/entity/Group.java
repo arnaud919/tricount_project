@@ -14,19 +14,16 @@ import java.util.List;
 @Builder
 public class Group {
 
-     @EqualsAndHashCode.Include
+    @EqualsAndHashCode.Include
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String name;
 
     @ManyToMany
-    @JoinTable(
-        name = "group_person",
-        joinColumns = @JoinColumn(name = "group_id"),
-        inverseJoinColumns = @JoinColumn(name = "person_id")
-    )
+    @JoinTable(name = "group_person", joinColumns = @JoinColumn(name = "group_id"), inverseJoinColumns = @JoinColumn(name = "person_id"))
     private List<Person> members;
 
     @OneToMany(mappedBy = "group")
@@ -34,4 +31,11 @@ public class Group {
 
     @OneToMany(mappedBy = "group")
     private List<Payment> payments;
+
+    @OneToMany(mappedBy = "group")
+    private List<ParticipantShare> shares;
+
+    @ManyToOne
+    @JoinColumn(name = "creator_id", nullable = false)
+    private Person creator;
 }

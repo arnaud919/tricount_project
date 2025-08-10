@@ -10,5 +10,7 @@ import lombok.Data;
 public class GroupDTO {
     private Long id;
     private String name;
+    private Long creatorId;
+    private String creatorName;
     private List<Long> memberIds;
 }

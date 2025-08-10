@@ -18,6 +18,7 @@ public class ParticipantShare {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private BigDecimal amountOwed;
 
     @ManyToOne
@@ -29,5 +30,6 @@ public class ParticipantShare {
     private Expense expense;
 
     @ManyToOne
+    @JoinColumn(name = "group_id")
     private Group group;
 }

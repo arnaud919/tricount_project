@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hb.tricount.business.ParticipantShareService;
+import com.hb.tricount.dto.DebtDTO;
 import com.hb.tricount.dto.ParticipantShareDTO;
 
 @RestController
@@ -24,5 +25,11 @@ public class ParticipantShareController {
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<ParticipantShareDTO>> getShares(@PathVariable Long groupId) {
         return ResponseEntity.ok(participantShareService.getSharesByGroupId(groupId));
+    }
+
+    @GetMapping("/group/{groupId}/balance")
+    public ResponseEntity<List<DebtDTO>> calculateBalance(@PathVariable Long groupId) {
+        List<DebtDTO> debts = participantShareService.calculateGroupBalance(groupId);
+        return ResponseEntity.ok(debts);
     }
 }

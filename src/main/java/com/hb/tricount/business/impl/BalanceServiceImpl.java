@@ -4,7 +4,11 @@ import com.hb.tricount.business.BalanceService;
 import com.hb.tricount.dto.DebtDTO;
 import com.hb.tricount.entity.Expense;
 import com.hb.tricount.entity.ParticipantShare;
+import com.hb.tricount.entity.Person;
 import com.hb.tricount.repository.ExpenseRepository;
+import com.hb.tricount.repository.ParticipantShareRepository;
+import com.hb.tricount.repository.PersonRepository;
+
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -15,97 +19,58 @@ import java.util.*;
 public class BalanceServiceImpl implements BalanceService {
 
     private final ExpenseRepository expenseRepository;
+    private final ParticipantShareRepository participantShareRepository;
+    private final PersonRepository personRepository;
 
-    public BalanceServiceImpl(
-            ExpenseRepository expenseRepository
-    ) {
+    public BalanceServiceImpl(ExpenseRepository expenseRepository, ParticipantShareRepository participantShareRepository, PersonRepository personRepository) {
         this.expenseRepository = expenseRepository;
+        this.participantShareRepository = participantShareRepository;
+        this.personRepository = personRepository;
     }
 
     @Override
-    @Transactional
-    public List<DebtDTO> calculateGroupBalance(Long groupId) {
-        // 1. Initialiser les soldes
-        Map<Long, BigDecimal> paid = new HashMap<>();
-        Map<Long, BigDecimal> owed = new HashMap<>();
+    public List<DebtDTO> getDebtsByGroup(Long groupId) {
+        List<ParticipantShare> shares = participantShareRepository.findByGroupId(groupId);
 
-        List<Expense> expenses = expenseRepository.findByGroupId(groupId);
+        Map<String, BigDecimal> debtMap = new HashMap<>();
 
-        for (Expense expense : expenses) {
-            Long payerId = expense.getPayer().getId();
-            BigDecimal amount = expense.getAmount();
+        for (ParticipantShare share : shares) {
+            Long creditorId = share.getExpense().getPayer().getId();
+            String creditorName = share.getExpense().getPayer().getName();
+            Long debtorId = share.getPerson().getId();
+            String debtorName = share.getPerson().getName();
+            BigDecimal amount = share.getAmountOwed();
 
-            // Ajout à la somme payée
-            paid.put(payerId, paid.getOrDefault(payerId, BigDecimal.ZERO).add(amount));
-
-            // Répartition des parts
-            for (ParticipantShare share : expense.getShares()) {
-                Long personId = share.getPerson().getId();
-                BigDecimal part = share.getAmountOwed();
-
-                owed.put(personId, owed.getOrDefault(personId, BigDecimal.ZERO).add(part));
+            // Ne pas se créer une dette envers soi-même
+            if (!creditorId.equals(debtorId)) {
+                String key = creditorId + "-" + debtorId;
+                debtMap.put(key, debtMap.getOrDefault(key, BigDecimal.ZERO).add(amount));
             }
         }
 
-        // 2. Calculer les soldes nets
-        Map<Long, BigDecimal> balances = new HashMap<>();
-        Set<Long> allIds = new HashSet<>();
-        allIds.addAll(paid.keySet());
-        allIds.addAll(owed.keySet());
-
-        for (Long personId : allIds) {
-            BigDecimal totalPaid = paid.getOrDefault(personId, BigDecimal.ZERO);
-            BigDecimal totalOwed = owed.getOrDefault(personId, BigDecimal.ZERO);
-            balances.put(personId, totalPaid.subtract(totalOwed));
-        }
-
-        // 3. Séparer créditeurs et débiteurs
-        List<PersonBalance> creditors = new ArrayList<>();
-        List<PersonBalance> debtors = new ArrayList<>();
-
-        for (Map.Entry<Long, BigDecimal> entry : balances.entrySet()) {
-            BigDecimal solde = entry.getValue();
-            if (solde.compareTo(BigDecimal.ZERO) > 0) {
-                creditors.add(new PersonBalance(entry.getKey(), solde));
-            } else if (solde.compareTo(BigDecimal.ZERO) < 0) {
-                debtors.add(new PersonBalance(entry.getKey(), solde.abs())); // dettes positives
-            }
-        }
-
-        // 4. Résoudre les dettes
+        // Conversion en DTO
         List<DebtDTO> result = new ArrayList<>();
 
-        for (PersonBalance debtor : debtors) {
-            BigDecimal resteARegler = debtor.amount;
+        for (String key : debtMap.keySet()) {
+            String[] parts = key.split("-");
+            Long creditorId = Long.valueOf(parts[0]);
+            Long debtorId = Long.valueOf(parts[1]);
 
-            Iterator<PersonBalance> it = creditors.iterator();
-            while (resteARegler.compareTo(BigDecimal.ZERO) > 0 && it.hasNext()) {
-                PersonBalance creditor = it.next();
+            // récupération de noms si nécessaire (optionnel si déjà récupéré dans la boucle
+            // précédente)
+            Person creditor = personRepository.findById(creditorId).orElseThrow();
+            Person debtor = personRepository.findById(debtorId).orElseThrow();
 
-                BigDecimal montant = resteARegler.min(creditor.amount);
-
-                result.add(DebtDTO.builder()
-                        .from(debtor.personId)
-                        .to(creditor.personId)
-                        .amount(montant)
-                        .build());
-
-                resteARegler = resteARegler.subtract(montant);
-                creditor.amount = creditor.amount.subtract(montant);
-            }
+            result.add(DebtDTO.builder()
+                    .creditorId(creditorId)
+                    .creditorName(creditor.getName())
+                    .debtorId(debtorId)
+                    .debtorName(debtor.getName())
+                    .amount(debtMap.get(key))
+                    .build());
         }
 
         return result;
     }
 
-    private static class PersonBalance {
-        Long personId;
-        BigDecimal amount;
-
-        PersonBalance(Long personId, BigDecimal amount) {
-            this.personId = personId;
-            this.amount = amount;
-        }
-    }
 }
-

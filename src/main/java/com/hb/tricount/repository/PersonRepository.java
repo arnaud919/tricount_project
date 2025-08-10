@@ -8,6 +8,5 @@ import com.hb.tricount.entity.Person;
 
 public interface PersonRepository extends JpaRepository<Person, Long> {
 
-    // Exemples de requêtes personnalisées
     Optional<Person> findByEmail(String email);
 }

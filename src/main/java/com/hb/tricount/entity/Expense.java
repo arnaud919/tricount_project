@@ -15,13 +15,18 @@ import java.util.List;
 @Builder
 public class Expense {
 
-     @EqualsAndHashCode.Include
+    @EqualsAndHashCode.Include
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String description;
+
+    @Column(nullable = false)
     private BigDecimal amount;
+
+    @Column(nullable = false)
     private LocalDate date;
 
     @ManyToOne

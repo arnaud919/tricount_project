@@ -5,5 +5,5 @@ import com.hb.tricount.dto.DebtDTO;
 import java.util.List;
 
 public interface BalanceService {
-    List<DebtDTO> calculateGroupBalance(Long groupId);
+    List<DebtDTO> getDebtsByGroup(Long groupId);
 }
